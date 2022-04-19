@@ -10,7 +10,7 @@ This step, we do the following:
 
 Some of this setup is for the sake of getting tests going. Other parts are to ensure our imports can be done with absolute paths.
 
-### Why bother with absolute paths?
+## Why bother with absolute paths?
 
 Because it makes refactoring later, easier. It rewards us for thinking of internal dependencies as external packages. That means we can make that change later if we like - but even if we don't, it then rewards us for proper package discipline.
 
