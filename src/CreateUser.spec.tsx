@@ -5,7 +5,7 @@ import events from "@testing-library/user-event";
 import { useRef, useState } from "react";
 
 const server = setupServer(
-  rest.post("/registrations", (request, response, context) => {
+  rest.post("/registrations", (_request, response, context) => {
     return response(context.status(201));
   })
 );
@@ -16,31 +16,34 @@ afterAll(() => server.close());
 afterEach(() => server.resetHandlers());
 
 function CreateUser() {
-  const formRef = useRef<HTMLFormElement>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
   return (
     <form
-      ref={formRef}
       onSubmit={async (e) => {
         e.preventDefault();
 
-        if (formRef.current) {
-          const payload = {};
-
-          for (const [key, value] of new FormData(formRef.current)) {
-            Reflect.set(payload, key, value);
-          }
-
-          await fetch("/registration", {
-            method: "post",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          });
-        }
+        await fetch("/registration", {
+          method: "post",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
       }}
     >
       <legend>Create user</legend>
-      <input type="email" name="email" placeholder="Email" />
-      <input type="password" name="password" placeholder="Password" />
+      <input
+        type="email"
+        placeholder="Email"
+        value={email}
+        onChange={(event) => setEmail(event.target.value)}
+      />
+      <input
+        type="password"
+        placeholder="Password"
+        value={password}
+        onChange={(event) => setPassword(event.target.value)}
+      />
       <button type="submit">Submit</button>
     </form>
   );
