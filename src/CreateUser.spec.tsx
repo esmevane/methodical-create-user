@@ -1,9 +1,9 @@
 import * as yup from "yup";
-import { response, rest } from "msw";
+import { rest } from "msw";
 import { setupServer } from "msw/node";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import events from "@testing-library/user-event";
-import { useEffect, useState } from "react";
+import { useEffect, useReducer, useState } from "react";
 
 const server = setupServer(
   rest.post("/registrations", (_request, response, context) => {
@@ -16,58 +16,95 @@ afterAll(() => server.close());
 
 afterEach(() => server.resetHandlers());
 
-function useRegistrationForm() {
-  const [formError, setFormError] = useState("");
+type Events =
+  | { type: "registration-success" }
+  | { type: "registration-failure"; value: string }
+  | { type: "email-valid" }
+  | { type: "email-invalid"; value: string }
+  | { type: "password-valid" }
+  | { type: "password-invalid"; value: string }
+  | { type: "update-email"; value: string }
+  | { type: "update-password"; value: string };
 
-  const [email, setEmail] = useState("");
-  const [emailError, setEmailError] = useState("");
+const init = {
+  values: { email: "", password: "" },
+  errors: { email: "", password: "", form: "" },
+};
+
+function registration(state: typeof init, event: Events) {
+  switch (event.type) {
+    case "registration-success":
+      return { ...state, errors: { ...state.errors, form: "" } };
+    case "password-valid":
+      return { ...state, errors: { ...state.errors, password: "" } };
+    case "email-valid":
+      return { ...state, errors: { ...state.errors, email: "" } };
+    case "registration-failure":
+      return { ...state, errors: { ...state.errors, form: event.value } };
+    case "update-password":
+      return { ...state, values: { ...state.values, password: event.value } };
+    case "update-email":
+      return { ...state, values: { ...state.values, email: event.value } };
+    case "password-invalid":
+      return { ...state, errors: { ...state.errors, password: event.value } };
+    case "email-invalid":
+      return { ...state, errors: { ...state.errors, email: event.value } };
+    default:
+      return state;
+  }
+}
+
+function useRegistrationForm() {
+  const [state, dispatch] = useReducer(registration, init);
 
   useEffect(() => {
     yup
       .string()
       .email()
-      .validate(email)
-      .then(() => setEmailError(""))
-      .catch(() => setEmailError("Email is invalid"));
-  }, [email]);
-
-  const [password, setPassword] = useState("");
-  const [passwordError, setPasswordError] = useState("");
+      .validate(state.values.email)
+      .then(() => dispatch({ type: "email-valid" }))
+      .catch(() =>
+        dispatch({ type: "email-invalid", value: "Email is invalid" })
+      );
+  }, [state.values.email]);
 
   useEffect(() => {
     yup
       .string()
       .min(4)
-      .validate(password)
-      .then(() => setPasswordError(""))
-      .catch(() => setPasswordError("Password is too short"));
-  }, [password]);
+      .validate(state.values.password)
+      .then(() => dispatch({ type: "password-valid" }))
+      .catch(() =>
+        dispatch({ type: "password-invalid", value: "Password is too short" })
+      );
+  }, [state.values.password]);
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    setFormError("");
+    dispatch({ type: "registration-success" });
 
     const response = await fetch("/registration", {
       method: "post",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify(state.values),
     });
 
     if (!response.ok) {
-      setFormError("We encountered an error while registering");
+      dispatch({
+        type: "registration-failure",
+        value: "We encountered an error while registering",
+      });
     }
   };
 
   return [
-    {
-      values: { email, password },
-      errors: { email: emailError, password: passwordError, form: formError },
-    },
+    state,
     {
       update: {
-        email: setEmail,
-        password: setPassword,
+        email: (value: string) => dispatch({ type: "update-email", value }),
+        password: (value: string) =>
+          dispatch({ type: "update-password", value }),
       },
       submit,
     },
