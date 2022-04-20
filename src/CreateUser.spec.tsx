@@ -57,28 +57,6 @@ function registration(state: typeof init, event: Events) {
 function useRegistrationForm() {
   const [state, dispatch] = useReducer(registration, init);
 
-  useEffect(() => {
-    yup
-      .string()
-      .email()
-      .validate(state.values.email)
-      .then(() => dispatch({ type: "email-valid" }))
-      .catch(() =>
-        dispatch({ type: "email-invalid", value: "Email is invalid" })
-      );
-  }, [state.values.email]);
-
-  useEffect(() => {
-    yup
-      .string()
-      .min(4)
-      .validate(state.values.password)
-      .then(() => dispatch({ type: "password-valid" }))
-      .catch(() =>
-        dispatch({ type: "password-invalid", value: "Password is too short" })
-      );
-  }, [state.values.password]);
-
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -98,17 +76,38 @@ function useRegistrationForm() {
     }
   };
 
-  return [
-    state,
-    {
-      update: {
-        email: (value: string) => dispatch({ type: "update-email", value }),
-        password: (value: string) =>
-          dispatch({ type: "update-password", value }),
+  const events = {
+    update: {
+      email: async (value: string) => {
+        dispatch({ type: "update-email", value });
+
+        try {
+          await yup.string().email().validate(state.values.email);
+
+          dispatch({ type: "email-valid" });
+        } catch {
+          dispatch({ type: "email-invalid", value: "Email is invalid" });
+        }
       },
-      submit,
+      password: async (value: string) => {
+        dispatch({ type: "update-password", value });
+
+        try {
+          await yup.string().min(4).validate(state.values.password);
+
+          dispatch({ type: "password-valid" });
+        } catch {
+          dispatch({
+            type: "password-invalid",
+            value: "Password is too short",
+          });
+        }
+      },
     },
-  ] as const;
+    submit,
+  };
+
+  return [state, events] as const;
 }
 
 function CreateUser() {
@@ -200,7 +199,6 @@ describe("CreateUser", () => {
     await events.type(await screen.findByPlaceholderText("Email"), email);
     await events.type(await screen.findByPlaceholderText("Password"), password);
     await events.click(await screen.findByText("Submit"));
-
     await screen.findByText("We encountered an error while registering");
   });
 
