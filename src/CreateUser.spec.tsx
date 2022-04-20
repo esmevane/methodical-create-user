@@ -61,10 +61,10 @@ function CreateUser() {
 
         if (!response.ok) {
           setFormError("We encountered an error while registering");
+        } else {
         }
       }}
     >
-      <legend>Create user</legend>
       <div>{hasFormError ? formError : null}</div>
       <label>
         <div>Email</div>
@@ -101,77 +101,72 @@ async function renderWithShell(ui: any) {
   return render(ui);
 }
 
-test("it renders", async () => {
-  await renderWithShell(<CreateUser />);
-  await screen.findByText("Create user");
-});
+describe("CreateUser", () => {
+  it("rejects invalid emails", async () => {
+    const email = "person";
 
-test("it rejects invalid emails", async () => {
-  const email = "person";
+    await renderWithShell(<CreateUser />);
+    await events.type(await screen.findByPlaceholderText("Email"), email);
 
-  await renderWithShell(<CreateUser />);
-  await events.type(await screen.findByPlaceholderText("Email"), email);
-
-  await screen.findByText("Email is invalid");
-});
-
-test("it rejects short passwords", async () => {
-  const password = "blah";
-
-  await renderWithShell(<CreateUser />);
-  await events.type(await screen.findByPlaceholderText("Password"), password);
-
-  await screen.findByText("Password is too short");
-});
-
-test("it disables submission on invalid forms", async () => {
-  const email = "blarg";
-  const password = "blah";
-
-  await renderWithShell(<CreateUser />);
-  await events.type(await screen.findByPlaceholderText("Email"), email);
-  await events.type(await screen.findByPlaceholderText("Password"), password);
-  const button = await screen.findByText("Submit");
-
-  expect(button).toBeDisabled();
-});
-
-test("it displays request errors", async () => {
-  const email = "person@example.com";
-  const password = "1 super secret password";
-
-  const handler = rest.post("/registration", (request, response, context) => {
-    return response(context.status(400));
+    await screen.findByText("Email is invalid");
   });
 
-  server.use(handler);
+  it("rejects short passwords", async () => {
+    const password = "blah";
 
-  await renderWithShell(<CreateUser />);
-  await events.type(await screen.findByPlaceholderText("Email"), email);
-  await events.type(await screen.findByPlaceholderText("Password"), password);
-  events.click(await screen.findByText("Submit"));
+    await renderWithShell(<CreateUser />);
+    await events.type(await screen.findByPlaceholderText("Password"), password);
 
-  await screen.findByText("We encountered an error while registering");
-});
-
-test("it submits a user registration", async () => {
-  const email = "person@example.com";
-  const password = "1 super secret password";
-
-  const listener = jest.fn();
-  const handler = rest.post("/registration", (request, response, context) => {
-    listener(request.body);
-    return response(context.status(201));
+    await screen.findByText("Password is too short");
   });
 
-  server.use(handler);
+  it("disables submission on invalid forms", async () => {
+    const email = "blarg";
+    const password = "blah";
 
-  await renderWithShell(<CreateUser />);
-  await events.type(await screen.findByPlaceholderText("Email"), email);
-  await events.type(await screen.findByPlaceholderText("Password"), password);
-  events.click(await screen.findByText("Submit"));
+    await renderWithShell(<CreateUser />);
+    await events.type(await screen.findByPlaceholderText("Email"), email);
+    await events.type(await screen.findByPlaceholderText("Password"), password);
+    const button = await screen.findByText("Submit");
 
-  await new Promise((resolve) => setTimeout(resolve, 16));
+    expect(button).toBeDisabled();
+  });
 
-  expect(listener).toHaveBeenCalledWith({ email, password });
+  it("displays request errors", async () => {
+    const email = "person@example.com";
+    const password = "1 super secret password";
+
+    const handler = rest.post("/registration", (request, response, context) => {
+      return response(context.status(400));
+    });
+
+    server.use(handler);
+
+    await renderWithShell(<CreateUser />);
+    await events.type(await screen.findByPlaceholderText("Email"), email);
+    await events.type(await screen.findByPlaceholderText("Password"), password);
+    await events.click(await screen.findByText("Submit"));
+
+    await screen.findByText("We encountered an error while registering");
+  });
+
+  it("submits a user registration", async () => {
+    const email = "person@example.com";
+    const password = "1 super secret password";
+
+    const listener = jest.fn();
+    const handler = rest.post("/registration", (request, response, context) => {
+      listener(request.body);
+      return response(context.status(201));
+    });
+
+    server.use(handler);
+
+    await renderWithShell(<CreateUser />);
+    await events.type(await screen.findByPlaceholderText("Email"), email);
+    await events.type(await screen.findByPlaceholderText("Password"), password);
+    await events.click(await screen.findByText("Submit"));
+
+    expect(listener).toHaveBeenCalledWith({ email, password });
+  });
 });
