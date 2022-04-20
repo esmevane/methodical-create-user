@@ -16,13 +16,11 @@ afterAll(() => server.close());
 
 afterEach(() => server.resetHandlers());
 
-function CreateUser() {
+function useRegistrationForm() {
   const [formError, setFormError] = useState("");
-  const hasFormError = !!formError;
 
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState("");
-  const hasEmailError = !!emailError;
 
   useEffect(() => {
     yup
@@ -35,7 +33,6 @@ function CreateUser() {
 
   const [password, setPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
-  const hasPasswordError = !!passwordError;
 
   useEffect(() => {
     yup
@@ -46,37 +43,57 @@ function CreateUser() {
       .catch(() => setPasswordError("Password is too short"));
   }, [password]);
 
+  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    setFormError("");
+
+    const response = await fetch("/registration", {
+      method: "post",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (!response.ok) {
+      setFormError("We encountered an error while registering");
+    }
+  };
+
+  return [
+    {
+      values: { email, password },
+      errors: { email: emailError, password: passwordError, form: formError },
+    },
+    {
+      update: {
+        email: setEmail,
+        password: setPassword,
+      },
+      submit,
+    },
+  ] as const;
+}
+
+function CreateUser() {
+  const [state, events] = useRegistrationForm();
+  const hasFormError = !!state.errors.form;
+  const hasEmailError = !!state.errors.email;
+  const hasPasswordError = !!state.errors.password;
+
   return (
-    <form
-      onSubmit={async (event) => {
-        event.preventDefault();
-
-        setFormError("");
-
-        const response = await fetch("/registration", {
-          method: "post",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        });
-
-        if (!response.ok) {
-          setFormError("We encountered an error while registering");
-        } else {
-        }
-      }}
-    >
-      <div>{hasFormError ? formError : null}</div>
+    <form onSubmit={events.submit}>
+      <div>{hasFormError ? state.errors.form : null}</div>
       <label>
         <div>Email</div>
         <div>
           <input
             type="email"
             placeholder="Email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            value={state.values.email}
+            onChange={(event) => events.update.email(event.target.value)}
           />
         </div>
-        <div>{hasEmailError ? emailError : null}</div>
+        <div>{hasEmailError ? state.errors.email : null}</div>
       </label>
       <label>
         <div>Password</div>
@@ -84,11 +101,11 @@ function CreateUser() {
           <input
             type="password"
             placeholder="Password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
+            value={state.values.password}
+            onChange={(event) => events.update.password(event.target.value)}
           />
         </div>
-        <div>{hasPasswordError ? passwordError : null}</div>
+        <div>{hasPasswordError ? state.errors.password : null}</div>
       </label>
       <button type="submit" disabled={hasEmailError || hasPasswordError}>
         Submit
