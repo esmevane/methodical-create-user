@@ -3,7 +3,14 @@ import { rest } from "msw";
 import { setupServer } from "msw/node";
 import { act, render, screen } from "@testing-library/react";
 import events from "@testing-library/user-event";
-import { useEffect, useReducer, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useReducer,
+  useState,
+} from "react";
 
 const server = setupServer(
   rest.post("/registrations", (_request, response, context) => {
@@ -110,8 +117,54 @@ function useRegistrationForm() {
   return [state, events] as const;
 }
 
-function CreateUser() {
+const RegistrationState = createContext<typeof init | null>(null);
+const RegistrationEvents = createContext<{
+  submit: (event: React.FormEvent<HTMLFormElement>) => Promise<void>;
+  update: {
+    email: (value: string) => Promise<void>;
+    password: (value: string) => Promise<void>;
+  };
+} | null>(null);
+
+function useRegistrationEvents() {
+  const events = useContext(RegistrationEvents);
+
+  if (!events) {
+    throw new Error(
+      "useRegistrationEvents must be used within a RegistrationProvider"
+    );
+  }
+
+  return events;
+}
+
+function useRegistrationState() {
+  const state = useContext(RegistrationState);
+
+  if (!state) {
+    throw new Error(
+      "useRegistrationState must be used within a RegistrationProvider"
+    );
+  }
+
+  return state;
+}
+
+function RegistrationProvider({ children }: React.PropsWithChildren<unknown>) {
   const [state, events] = useRegistrationForm();
+
+  return (
+    <RegistrationState.Provider value={state}>
+      <RegistrationEvents.Provider value={events}>
+        {children}
+      </RegistrationEvents.Provider>
+    </RegistrationState.Provider>
+  );
+}
+
+function CreateUser() {
+  const state = useRegistrationState();
+  const events = useRegistrationEvents();
   const hasFormError = !!state.errors.form;
   const hasEmailError = !!state.errors.email;
   const hasPasswordError = !!state.errors.password;
@@ -150,8 +203,12 @@ function CreateUser() {
   );
 }
 
+function Shell(props: React.PropsWithChildren<unknown>) {
+  return <RegistrationProvider>{props.children}</RegistrationProvider>;
+}
+
 async function renderWithShell(ui: any) {
-  return render(ui);
+  return render(<Shell>{ui}</Shell>);
 }
 
 describe("CreateUser", () => {
