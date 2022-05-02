@@ -1,6 +1,7 @@
 type AsyncStatus = "idle" | "working" | "success" | "failure";
 
 type Events =
+  | { type: "registration-request" }
   | { type: "registration-success" }
   | { type: "registration-failure"; value: string }
   | { type: "email-valid" }
@@ -60,15 +61,23 @@ export function update(state: typeof init, event: Events): typeof init {
         status: { ...state.status, email: "failure" },
       };
 
+    case "registration-request":
+      return {
+        ...state,
+        errors: { ...state.errors, form: "" },
+        status: { ...state.status, form: "working" },
+      };
     case "update-password":
       return {
         ...state,
         values: { ...state.values, password: event.value },
+        status: { ...state.status, password: "working" },
       };
     case "update-email":
       return {
         ...state,
         values: { ...state.values, email: event.value },
+        status: { ...state.status, email: "working" },
       };
     default:
       return state;

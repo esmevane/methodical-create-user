@@ -10,7 +10,7 @@ export function useRegistrationForm() {
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    dispatch({ type: "registration-success" });
+    dispatch({ type: "registration-request" });
 
     const response = await fetch("/registration", {
       method: "post",
@@ -19,11 +19,13 @@ export function useRegistrationForm() {
     });
 
     if (!response.ok) {
-      dispatch({
+      return dispatch({
         type: "registration-failure",
         value: "We encountered an error while registering",
       });
     }
+
+    dispatch({ type: "registration-success" });
   };
 
   const events = {

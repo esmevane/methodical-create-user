@@ -3,6 +3,14 @@ import { useRegistrationEvents, useRegistrationState } from "shell";
 export function CreateUser() {
   const state = useRegistrationState();
   const events = useRegistrationEvents();
+  const submitting = state.status.form === "working";
+  const formInvalid = [state.status.email, state.status.password].includes(
+    "failure"
+  );
+
+  if (state.status.form === "success") {
+    return <>Registration success</>;
+  }
 
   return (
     <form onSubmit={events.submit}>
@@ -18,6 +26,8 @@ export function CreateUser() {
           />
         </div>
         <div>
+          {state.status.email === "success" ? "Email valid" : null}
+          {state.status.email === "working" ? "Checking email" : null}
           {state.status.email === "failure" ? state.errors.email : null}
         </div>
       </label>
@@ -32,16 +42,13 @@ export function CreateUser() {
           />
         </div>
         <div>
+          {state.status.password === "success" ? "Password valid" : null}
+          {state.status.password === "working" ? "Checking password" : null}
           {state.status.password === "failure" ? state.errors.password : null}
         </div>
       </label>
-      <button
-        type="submit"
-        disabled={[state.status.email, state.status.password].includes(
-          "failure"
-        )}
-      >
-        Submit
+      <button type="submit" disabled={formInvalid || submitting}>
+        {submitting ? "Submitting" : "Submit"}
       </button>
     </form>
   );
