@@ -3,13 +3,10 @@ import { useRegistrationEvents, useRegistrationState } from "shell";
 export function CreateUser() {
   const state = useRegistrationState();
   const events = useRegistrationEvents();
-  const hasFormError = !!state.errors.form;
-  const hasEmailError = !!state.errors.email;
-  const hasPasswordError = !!state.errors.password;
 
   return (
     <form onSubmit={events.submit}>
-      <div>{hasFormError ? state.errors.form : null}</div>
+      <div>{state.status.form === "failure" ? state.errors.form : null}</div>
       <label>
         <div>Email</div>
         <div>
@@ -20,7 +17,9 @@ export function CreateUser() {
             onChange={(event) => events.update.email(event.target.value)}
           />
         </div>
-        <div>{hasEmailError ? state.errors.email : null}</div>
+        <div>
+          {state.status.email === "failure" ? state.errors.email : null}
+        </div>
       </label>
       <label>
         <div>Password</div>
@@ -32,9 +31,16 @@ export function CreateUser() {
             onChange={(event) => events.update.password(event.target.value)}
           />
         </div>
-        <div>{hasPasswordError ? state.errors.password : null}</div>
+        <div>
+          {state.status.password === "failure" ? state.errors.password : null}
+        </div>
       </label>
-      <button type="submit" disabled={hasEmailError || hasPasswordError}>
+      <button
+        type="submit"
+        disabled={[state.status.email, state.status.password].includes(
+          "failure"
+        )}
+      >
         Submit
       </button>
     </form>

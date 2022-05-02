@@ -1,3 +1,5 @@
+type AsyncStatus = "idle" | "working" | "success" | "failure";
+
 type Events =
   | { type: "registration-success" }
   | { type: "registration-failure"; value: string }
@@ -11,26 +13,63 @@ type Events =
 export const init = {
   values: { email: "", password: "" },
   errors: { email: "", password: "", form: "" },
+  status: {
+    email: "idle" as AsyncStatus,
+    password: "idle" as AsyncStatus,
+    form: "idle" as AsyncStatus,
+  },
 };
 
-export function update(state: typeof init, event: Events) {
+export function update(state: typeof init, event: Events): typeof init {
   switch (event.type) {
     case "registration-success":
-      return { ...state, errors: { ...state.errors, form: "" } };
+      return {
+        ...state,
+        errors: { ...state.errors, form: "" },
+        status: { ...state.status, form: "success" },
+      };
     case "password-valid":
-      return { ...state, errors: { ...state.errors, password: "" } };
+      return {
+        ...state,
+        errors: { ...state.errors, password: "" },
+        status: { ...state.status, password: "success" },
+      };
     case "email-valid":
-      return { ...state, errors: { ...state.errors, email: "" } };
+      return {
+        ...state,
+        errors: { ...state.errors, email: "" },
+        status: { ...state.status, email: "success" },
+      };
+
     case "registration-failure":
-      return { ...state, errors: { ...state.errors, form: event.value } };
-    case "update-password":
-      return { ...state, values: { ...state.values, password: event.value } };
-    case "update-email":
-      return { ...state, values: { ...state.values, email: event.value } };
+      return {
+        ...state,
+        errors: { ...state.errors, form: event.value },
+        status: { ...state.status, form: "failure" },
+      };
     case "password-invalid":
-      return { ...state, errors: { ...state.errors, password: event.value } };
+      return {
+        ...state,
+        errors: { ...state.errors, password: event.value },
+        status: { ...state.status, password: "failure" },
+      };
     case "email-invalid":
-      return { ...state, errors: { ...state.errors, email: event.value } };
+      return {
+        ...state,
+        errors: { ...state.errors, email: event.value },
+        status: { ...state.status, email: "failure" },
+      };
+
+    case "update-password":
+      return {
+        ...state,
+        values: { ...state.values, password: event.value },
+      };
+    case "update-email":
+      return {
+        ...state,
+        values: { ...state.values, email: event.value },
+      };
     default:
       return state;
   }
