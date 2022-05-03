@@ -1,7 +1,6 @@
-import { rest } from "msw";
 import { screen } from "@testing-library/react";
 import events from "@testing-library/user-event";
-import { renderWithShell, server } from "test-utils";
+import { renderWithShell } from "test-utils";
 
 import { CreateUser } from "./create-user";
 
@@ -88,13 +87,13 @@ describe("CreateUser", () => {
     const email = "person@example.com";
     const password = "1 super secret password";
 
-    const handler = rest.post("/registration", (request, response, context) => {
-      return response(context.status(400));
-    });
+    const requests = {
+      register: async (options: { email: string; password: string }) => {
+        throw new Error("Network IO explosion!");
+      },
+    };
 
-    server.use(handler);
-
-    await renderWithShell(<CreateUser />);
+    await renderWithShell(<CreateUser />, { requests });
     await events.type(await screen.findByPlaceholderText("Email"), email);
     await events.type(await screen.findByPlaceholderText("Password"), password);
     await events.click(await screen.findByText("Submit"));
@@ -105,13 +104,13 @@ describe("CreateUser", () => {
     const email = "person@example.com";
     const password = "1 super secret password";
 
-    const handler = rest.post("/registration", (request, response, context) => {
-      return response(context.status(201));
-    });
+    const requests = {
+      register: async (options: { email: string; password: string }) => {
+        await new Promise((resolve) => setTimeout(resolve, 10_000_000));
+      },
+    };
 
-    server.use(handler);
-
-    await renderWithShell(<CreateUser />);
+    await renderWithShell(<CreateUser />, { requests });
     await events.type(await screen.findByPlaceholderText("Email"), email);
     await events.type(await screen.findByPlaceholderText("Password"), password);
     await events.click(await screen.findByText("Submit"));
@@ -123,16 +122,15 @@ describe("CreateUser", () => {
   it("submits a user registration", async () => {
     const email = "person@example.com";
     const password = "1 super secret password";
-
     const listener = jest.fn();
-    const handler = rest.post("/registration", (request, response, context) => {
-      listener(request.body);
-      return response(context.status(201));
-    });
 
-    server.use(handler);
+    const requests = {
+      register: async (options: { email: string; password: string }) => {
+        listener(options);
+      },
+    };
 
-    await renderWithShell(<CreateUser />);
+    await renderWithShell(<CreateUser />, { requests });
     await events.type(await screen.findByPlaceholderText("Email"), email);
     await events.type(await screen.findByPlaceholderText("Password"), password);
     await events.click(await screen.findByText("Submit"));

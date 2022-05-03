@@ -4,7 +4,7 @@ import { render } from "@testing-library/react";
 import { Shell } from "shell";
 
 export const server = setupServer(
-  rest.post("/registrations", (_request, response, context) => {
+  rest.post("/registration", (_request, response, context) => {
     return response(context.status(201));
   })
 );
@@ -14,6 +14,11 @@ afterAll(() => server.close());
 
 afterEach(() => server.resetHandlers());
 
-export async function renderWithShell(ui: any) {
-  return render(<Shell>{ui}</Shell>);
+type ShellProps = Parameters<typeof Shell>[0];
+
+export async function renderWithShell(
+  ui: any,
+  shellProps?: Partial<ShellProps>
+) {
+  return render(<Shell {...shellProps}>{ui}</Shell>);
 }

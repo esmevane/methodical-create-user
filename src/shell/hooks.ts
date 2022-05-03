@@ -3,29 +3,38 @@ import { useContext, useReducer } from "react";
 import { registration } from "core";
 
 import { RegistrationEvents, RegistrationState } from "./registration-context";
+import { RequestHandlers } from "./types";
+import { Requests } from "./requests-context";
+
+export function useRequests(): RequestHandlers {
+  const requests = useContext(Requests);
+
+  if (!requests) {
+    throw new Error("useRequests must be used inside a RequestsProvider");
+  }
+
+  return requests;
+}
 
 export function useRegistrationForm() {
   const [state, dispatch] = useReducer(registration.update, registration.init);
+  const requests = useRequests();
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     dispatch({ type: "registration-request" });
 
-    const response = await fetch("/registration", {
-      method: "post",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(state.values),
-    });
+    try {
+      await requests.register?.(state.values);
 
-    if (!response.ok) {
+      dispatch({ type: "registration-success" });
+    } catch {
       return dispatch({
         type: "registration-failure",
         value: "We encountered an error while registering",
       });
     }
-
-    dispatch({ type: "registration-success" });
   };
 
   const events = {
